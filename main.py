@@ -8,8 +8,8 @@ from pybricks.robotics import DriveBase
 left_motor = Motor(Port.B, positive_direction=Direction.CLOCKWISE)
 right_motor = Motor(Port.D, positive_direction=Direction.CLOCKWISE)
 
-sensorL = ColorSensor(Port.S1)
-sensorR = ColorSensor(Port.S4)
+sensorL = ColorSensor(Port.S4)
+sensorR = ColorSensor(Port.S1)
 
 #robot = DriveBase(left_motor,right_motor, wheel_diameter = 55.5, axle_track=104)
 
@@ -19,7 +19,7 @@ BLACK_LIMIT = 15
 target = 0
 sample_time = 0.10 # em segundos
 
-kP = 7
+kP =25#7
 kI = 0
 kD = 0
 
