@@ -1,5 +1,8 @@
 #!/usr/bin/env pybricks-micropython
 
+
+#TODO: Corrigir signal, que está sempre negativo e desbalanceado!
+
 # Parâmetros de otimzação do micropython
 from micropython import const, opt_level
 
@@ -22,7 +25,7 @@ ev3 = EV3Brick()
 ev3.screen.set_font(Font(size=14))
 
 # Atuadores
-left_motor = Motor(Port.B)
+left_motor = Motor(Port.A)
 right_motor = Motor(Port.C)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=45.0, axle_track=255)
 
@@ -30,11 +33,11 @@ robot = DriveBase(left_motor, right_motor, wheel_diameter=45.0, axle_track=255)
 sensorR = ColorSensor(Port.S4)
 sensorL = ColorSensor(Port.S1)
 
-lsa = LSA(Port.S2)
-ultra = UltrasonicSensor(Port.S3)
+lsa = LSA(Port.S3)
+ultra = UltrasonicSensor(Port.S2)
 
 # Parâmetros do controlador PID
-KP = 2
+KP = 9.5
 KI = const(0)
 KD = const(0)
 controller = PIDController(KP, KI, KD)
@@ -52,7 +55,7 @@ LIMIAR_BRANCO = const(90)
 DIST_ULTRASONICO = const(100) # em milimetros
 
 # Parâmetros do sensor LSA
-USAR_SENSOR_LSA = False
+USAR_SENSOR_LSA = True
 LIMIAR_PRETO_LSA = const(80)
 PESOS_LSA = [1, 2, 3, 4, -4, -3, -2, -1]
 
@@ -156,7 +159,7 @@ def calcular_erro_lsa():
     soma_ponderada = 0
     soma_ativacoes = 0
 
-    leitura = lsa.read_calibrated()
+    leitura = lsa.read_calibrated() # 0 a 100?
 
     for i in range(8):
         # invertemos o resultado da leitura do sensor:
@@ -188,8 +191,13 @@ def main_loop():
 
         signal = controller.update(0, erro_lsa)
 
-        print(erro_lsa)
-        print(signal)
+        #print(erro_lsa)
+        print(3*signal)
+
+        left_motor.run(BASE_VEL + 15*signal)
+        right_motor.run(BASE_VEL - 15*signal)
+
+        #print("left: {} // right: {} // erro: {}".format(colorL, colorR, color))
 
     else:
         color = (colorR + DESVIO_RIGHT) - (colorL + DESVIO_LEFT)
