@@ -1,7 +1,6 @@
 #!/usr/bin/env pybricks-micropython
 
 
-#TODO: Corrigir signal, que está sempre negativo e desbalanceado!
 
 # Parâmetros de otimzação do micropython
 from micropython import const, opt_level
@@ -37,25 +36,25 @@ lsa = LSA(Port.S3)
 ultra = UltrasonicSensor(Port.S2)
 
 # Parâmetros do controlador PID
-KP = 9.5
+KP = 6
 KI = const(0)
 KD = const(0)
 controller = PIDController(KP, KI, KD)
 
 # Parâmetros chassi/drivebase
-BASE_VEL = const(200)
-DESVIO_RIGHT = 0
+BASE_VEL = const(150)
+DESVIO_RIGHT = 6
 DESVIO_LEFT = 0
 
 # Parâmetros sensor de cor
-LIMIAR_PRETO = const(25)
-LIMIAR_BRANCO = const(90)
+LIMIAR_PRETO = const(15)
+LIMIAR_BRANCO = const(35)
 
 # Parâmetros ultrasônico
 DIST_ULTRASONICO = const(100) # em milimetros
 
 # Parâmetros do sensor LSA
-USAR_SENSOR_LSA = True
+USAR_SENSOR_LSA = False
 LIMIAR_PRETO_LSA = const(80)
 PESOS_LSA = [1, 2, 3, 4, -4, -3, -2, -1]
 
@@ -155,6 +154,19 @@ def check_curvas90(colorLeft, colorRight):
                 robot.drive(0, 20)
     '''
 
+def check_curvas90_teste(colorLeft, colorRight):
+    
+    # curva 90° para a esquerda
+    if( (colorLeft <= LIMIAR_PRETO) and (colorRight >= LIMIAR_BRANCO) ):
+        left_motor.run_angle(250, 100, wait=False)
+        right_motor.run_angle(250, -100, wait=True)
+
+    elif( (colorRight <= LIMIAR_PRETO) and (colorLeft >= LIMIAR_BRANCO) ):
+        #left_motor.run_angle(250, 215, wait=False)
+        #right_motor.run_angle(250, -215, wait=True)
+        left_motor.run_angle(250, 100, wait=False)
+        right_motor.run_angle(250, -100 , wait=True)
+
 def calcular_erro_lsa():
     soma_ponderada = 0
     soma_ativacoes = 0
@@ -180,7 +192,7 @@ def main_loop():
 
     #rgb_left = sum(sensorL.rgb())
     #rgb_right = sum(sensorR.rgb())
-
+    #loop_calibracao()
     colorR = sensorR.reflection()
     colorL = sensorL.reflection()
 
@@ -192,7 +204,8 @@ def main_loop():
         signal = controller.update(0, erro_lsa)
 
         #print(erro_lsa)
-        print(3*signal)
+        #print(3*signal)
+        print(lsa.read_calibrated())
 
         left_motor.run(BASE_VEL + 15*signal)
         right_motor.run(BASE_VEL - 15*signal)
@@ -204,10 +217,16 @@ def main_loop():
 
         signal = controller.update(0, color)
 
+        check_curvas90_teste(colorL, colorR)
+
         left_motor.run(BASE_VEL + signal)
         right_motor.run(BASE_VEL - signal)
 
+
+
         print("left: {} // right: {} // erro: {}".format(colorL, colorR, color))
+
+
 
 while True:
     #print(lsa.read_calibrated())
