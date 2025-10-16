@@ -1,3 +1,4 @@
+from micropython import const
 SAMPLE_TIME = 0.10 # em segundos
 MAX_INTEGRAL = const(10)
 MIN_INTEGRAL = const(-10)

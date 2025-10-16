@@ -1,9 +1,13 @@
 #!/usr/bin/env pybricks-micropython
 
-import math
+# Parâmetros de otimzação do micropython
+from micropython import const, opt_level
+
+# Imports locais
 from lib.PIDController import PIDController
 from lib.LightSensorArray import LSA
 
+# Imports globais 
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import (Motor, ColorSensor, UltrasonicSensor)
 from pybricks.parameters import Port, Button
@@ -11,42 +15,50 @@ from pybricks.robotics import DriveBase
 from pybricks.tools import wait
 from pybricks.media.ev3dev import Font
 
+# Equivalente de "compilar" usando a flag -O3
+opt_level(3)
+
 ev3 = EV3Brick()
 ev3.screen.set_font(Font(size=14))
 
 # Atuadores
 left_motor = Motor(Port.B)
-right_motor = Motor(Port.D)
-
+right_motor = Motor(Port.C)
 robot = DriveBase(left_motor, right_motor, wheel_diameter=45.0, axle_track=255)
 
 # Sensores
-sensorL = ColorSensor(Port.S4)
-sensorR = ColorSensor(Port.S1)
+sensorR = ColorSensor(Port.S4)
+sensorL = ColorSensor(Port.S1)
 
-#lsa = LSA(Port.S2)
+lsa = LSA(Port.S2)
 ultra = UltrasonicSensor(Port.S3)
 
-# Configurações e Parâmetros
-KP = const(25)
+# Parâmetros do controlador PID
+KP = 2
 KI = const(0)
-KD = const(5)
+KD = const(0)
 controller = PIDController(KP, KI, KD)
 
-BASE_VEL = const(300)
+# Parâmetros chassi/drivebase
+BASE_VEL = const(200)
+DESVIO_RIGHT = 0
+DESVIO_LEFT = 0
+
+# Parâmetros sensor de cor
 LIMIAR_PRETO = const(25)
 LIMIAR_BRANCO = const(90)
 
+# Parâmetros ultrasônico
 DIST_ULTRASONICO = const(100) # em milimetros
 
+# Parâmetros do sensor LSA
 USAR_SENSOR_LSA = False
 LIMIAR_PRETO_LSA = const(80)
 PESOS_LSA = [1, 2, 3, 4, -4, -3, -2, -1]
 
 # Funções principais
 
-'''
-TODO: fazer os comandos de calibração do sensor LSA funcionarem
+#TODO: fazer os comandos de calibração do sensor LSA funcionarem
 def loop_calibracao():
     while True:
         buttons = ev3.buttons.pressed()
@@ -71,7 +83,6 @@ def loop_calibracao():
             break
         
         ev3.screen.clear()
-'''
 
 def check_ultrasonico():
 
@@ -95,6 +106,9 @@ def check_ultrasonico():
         # deu tudo certo, o robô está de costas com o obstáculo
         robot.straight(100)
 
+        # toda vez devemos terminar com robot.stop()
+        # se não, não dá pra usar os motores individualmente sem o micropython crashar
+        robot.stop()
 
 def check_curvas90(colorLeft, colorRight):
     
@@ -119,6 +133,10 @@ def check_curvas90(colorLeft, colorRight):
             else:
                 robot.drive(0, 20)
 
+    # toda vez devemos terminar com robot.stop()
+    # se não, não dá pra usar os motores individualmente sem o micropython crashar
+    robot.stop()
+
     '''
     # curva 90° para a direita
     if ( (colorLeft >= LIMIAR_BRANCO) and (colorRight <= LIMIAR_PRETO) ):
@@ -141,7 +159,6 @@ def calcular_erro_lsa():
     leitura = lsa.read_calibrated()
 
     for i in range(8):
-
         # invertemos o resultado da leitura do sensor:
         # maior o número == mais próximo do preto, logo tem maior peso
         ativacao = 100 - leitura[i]
@@ -155,22 +172,16 @@ def calcular_erro_lsa():
     # TODO: evitar divisão por 0 na soma das ativações
     return soma_ponderada / (soma_ativacoes + 1)
 
-while True:
-    
-    # loop de calibração dos sensores
-    #loop_calibracao()
-
-    # main loop
-
+def main_loop():
     #check_ultrasonico()
 
-    #reflectionL = sensorL.reflection()
-    #reflectionR = sensorR.reflection()
+    #rgb_left = sum(sensorL.rgb())
+    #rgb_right = sum(sensorR.rgb())
 
-    rgb_left = sum(sensorL.rgb())
-    rgb_right = sum(sensorR.rgb())
+    colorR = sensorR.reflection()
+    colorL = sensorL.reflection()
 
-    check_curvas90(rgb_left, rgb_right)
+    #check_curvas90(rgb_left, rgb_right)
 
     if USAR_SENSOR_LSA:
         erro_lsa = calcular_erro_lsa()
@@ -181,13 +192,18 @@ while True:
         print(signal)
 
     else:
-        color = rgb_left - rgb_right
+        color = (colorR + DESVIO_RIGHT) - (colorL + DESVIO_LEFT)
 
         signal = controller.update(0, color)
-        
-        #print(color)
-        #print(signal)
-        
-        #robot.drive(BASE_VEL, signal)
 
-        print("left: {} // right: {} // erro: {}".format(rgb_left, rgb_right, color))
+        left_motor.run(BASE_VEL + signal)
+        right_motor.run(BASE_VEL - signal)
+
+        print("left: {} // right: {} // erro: {}".format(colorL, colorR, color))
+
+while True:
+    #print(lsa.read_calibrated())
+    # loop de calibração dos sensores
+    #loop_calibracao()
+
+    main_loop()

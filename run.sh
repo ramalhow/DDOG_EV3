@@ -1,4 +1,4 @@
-#!/usr/bin/env pybricks-micropython
+#!/bin/bash
 
 echo "Running the main.py"
-brickrun -r -- pybricks-micropython -O2 main.py
+brickrun -- pybricks-micropython -O2 main.py
